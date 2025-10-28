@@ -421,9 +421,13 @@ display_values:
  lcd_write_com
 
  rcall evaluate_result_char
+ mov temp7, data
  rcall lcd_put_char
-
  clr input_ready
+ cpi temp7, 'T'
+ brne display_values_skip_flash
+ rcall flash_led_true
+display_values_skip_flash:
 
  pop data
  pop temp8
@@ -578,6 +582,29 @@ blink_state_led:
  out PORTC, temp7
  pop temp8
  pop temp7
+ ret
+
+flash_led_true:
+ push col
+ push temp7
+ push temp8
+ ldi col, 3
+flash_led_loop:
+ ldi temp7, 0xFF
+ out PORTC, temp7
+ ldi temp7, low(40000)
+ ldi temp8, high(40000)
+ delay
+ clr temp7
+ out PORTC, temp7
+ ldi temp7, low(40000)
+ ldi temp8, high(40000)
+ delay
+ dec col
+ brne flash_led_loop
+ pop temp8
+ pop temp7
+ pop col
  ret
 
 end:

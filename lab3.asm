@@ -506,7 +506,64 @@ lcd_put_char:
  ret
 
 evaluate_result_char:
- ldi data, '?'
+ push temp1
+ push temp2
+ push temp3
+ push temp4
+ push temp5
+ push temp6
+ push temp7
+ push temp8
+ push llhs
+ push hlhs
+
+ clr r1
+ mov temp1, aval
+ mov temp2, aval
+ mul temp1, temp2
+ mov llhs, r0
+ mov hlhs, r1
+
+ clr r1
+ mov temp1, bval
+ mov temp2, bval
+ mul temp1, temp2
+ mov temp3, r0
+ mov temp4, r1
+
+ add llhs, temp3
+ adc hlhs, temp4
+
+ clr r1
+ mov temp1, cval
+ mov temp2, cval
+ mul temp1, temp2
+ mov temp5, r0
+ mov temp6, r1
+
+ cp hlhs, temp6
+ cpc llhs, temp5
+ brlo eval_false
+ breq eval_false
+
+ ldi data, 'T'
+ rjmp eval_done
+
+eval_false:
+ ldi data, 'F'
+
+eval_done:
+ clr r1
+ pop hlhs
+ pop llhs
+ pop temp8
+ pop temp7
+ pop temp6
+ pop temp5
+ pop temp4
+ pop temp3
+ pop temp2
+ pop temp1
  ret
 
 blink_state_led:

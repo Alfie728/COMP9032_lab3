@@ -274,18 +274,27 @@ convert_end:
  cpi data, '*'
  breq key_star
  cpi data, '0'
- brlt key_ignore
+ brlt key_ignore_trampoline
  cpi data, ':'
- brge key_ignore
+ brge key_ignore_trampoline
  rjmp key_digit
 
+key_ignore_trampoline:
+ rjmp key_ignore
+
 key_hash:
- cpi input_state, 3
- brge key_display
+ mov temp7, input_state
+ cpi temp7, 3
+ brge key_display_trampoline
  inc input_state
- cpi input_state, 3
- brne key_display
- ldi input_ready, 1
+ mov temp7, input_state
+ cpi temp7, 3
+ brne key_display_trampoline
+ ldi temp7, 1
+ mov input_ready, temp7
+ rjmp key_display
+
+key_display_trampoline:
  rjmp key_display
 
 key_star:
@@ -303,18 +312,21 @@ key_star:
 
 key_digit:
  mov temp1, data
- subi temp1, '0'
- cpi input_state, 0
+ ldi temp7, '0'
+ sub temp1, temp7
+ mov temp7, input_state
+ cpi temp7, 0
  breq key_digit_a
- cpi input_state, 1
+ cpi temp7, 1
  breq key_digit_b
- cpi input_state, 2
+ cpi temp7, 2
  breq key_digit_c
  rjmp key_ignore
 
 key_digit_a:
  mov temp2, aval
- ldi temp4, 10
+ ldi temp7, 10
+ mov temp4, temp7
  mul temp2, temp4
  mov temp2, r0
  clr r1
@@ -324,7 +336,8 @@ key_digit_a:
 
 key_digit_b:
  mov temp2, bval
- ldi temp4, 10
+ ldi temp7, 10
+ mov temp4, temp7
  mul temp2, temp4
  mov temp2, r0
  clr r1
@@ -334,7 +347,8 @@ key_digit_b:
 
 key_digit_c:
  mov temp2, cval
- ldi temp4, 10
+ ldi temp7, 10
+ mov temp4, temp7
  mul temp2, temp4
  mov temp2, r0
  clr r1

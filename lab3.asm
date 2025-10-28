@@ -8,9 +8,12 @@
 .def temp6 = r7
 .def temp7 = r16
 .def temp8 = r17
-.def a = r1
-.def b = r19  ; also as cmask
-.def c = r20  ; also as rmask
+.def aval = r8
+.def bval = 9
+.def cval = r10
+.def input_state = r11
+.def input_ready = r12
+.def colmask = r19  ; column drive mask
 .def col = r21
 .def row = r22
 .def data = r23
@@ -193,15 +196,21 @@ open_lcd:
  lcd_write_com
 
 
+ clr aval
+ clr bval
+ clr cval
+ clr input_state
+ clr input_ready
+
 KeyPad_loop:
 
 KeyPad:
- ldi b, INIT_COL_MASK
+ ldi colmask, INIT_COL_MASK
  clr col
 col_loop:
  cpi col, 4
  breq KeyPad
- sts PORTL, b
+ sts PORTL, colmask
 
  ldi temp7, low(35000)
  ldi temp8, high(35000)
@@ -223,7 +232,7 @@ row_loop:
  rjmp row_loop
 
 next_col:
- lsl b
+ lsl colmask
  inc col
  rjmp col_loop
 
@@ -260,9 +269,88 @@ zero:
 
 convert_end:
 
+ cpi data, '#'
+ breq key_hash
+ cpi data, '*'
+ breq key_star
+ cpi data, '0'
+ brlt key_ignore
+ cpi data, ':'
+ brge key_ignore
+ rjmp key_digit
+
+key_hash:
+ cpi input_state, 3
+ brge key_display
+ inc input_state
+ cpi input_state, 3
+ brne key_display
+ ldi input_ready, 1
+ rjmp key_display
+
+key_star:
+ clr aval
+ clr bval
+ clr cval
+ clr input_state
+ clr input_ready
+
+ lcd_wait_busy
+ ldi data, LCD_CLEAR
+ lcd_write_com
+ lcd_wait_busy
+ rjmp key_post_delay
+
+key_digit:
+ mov temp1, data
+ subi temp1, '0'
+ cpi input_state, 0
+ breq key_digit_a
+ cpi input_state, 1
+ breq key_digit_b
+ cpi input_state, 2
+ breq key_digit_c
+ rjmp key_ignore
+
+key_digit_a:
+ mov temp2, aval
+ ldi temp4, 10
+ mul temp2, temp4
+ mov temp2, r0
+ clr r1
+ add temp2, temp1
+ mov aval, temp2
+ rjmp key_display
+
+key_digit_b:
+ mov temp2, bval
+ ldi temp4, 10
+ mul temp2, temp4
+ mov temp2, r0
+ clr r1
+ add temp2, temp1
+ mov bval, temp2
+ rjmp key_display
+
+key_digit_c:
+ mov temp2, cval
+ ldi temp4, 10
+ mul temp2, temp4
+ mov temp2, r0
+ clr r1
+ add temp2, temp1
+ mov cval, temp2
+ rjmp key_display
+
+key_display:
  lcd_wait_busy
  lcd_write_data
+ rjmp key_post_delay
 
+key_ignore:
+ rjmp key_post_delay
+
+key_post_delay:
  ldi temp7, low(55000)
  ldi temp8, high(55000)
  delay

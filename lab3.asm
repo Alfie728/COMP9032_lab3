@@ -203,6 +203,11 @@ open_lcd:
  clr input_ready
 
 KeyPad_loop:
+ mov temp7, input_ready
+ cpi temp7, 0
+ breq KeyPad
+ rcall display_values
+ rjmp KeyPad_loop
 
 KeyPad:
  ldi colmask, INIT_COL_MASK
@@ -370,6 +375,153 @@ key_post_delay:
  delay
 
  rjmp KeyPad_loop
+
+display_values:
+ push temp1
+ push temp2
+ push temp3
+ push temp7
+ push temp8
+ push data
+
+ lcd_wait_busy
+ ldi data, LCD_CLEAR
+ lcd_write_com
+ lcd_wait_busy
+
+ ldi data, LCD_SET_ADD | 0x00
+ lcd_write_com
+
+ ldi data, '('
+ rcall lcd_put_char
+
+ mov temp1, aval
+ rcall print_decimal
+
+ ldi data, ','
+ rcall lcd_put_char
+ ldi data, ' '
+ rcall lcd_put_char
+
+ mov temp1, bval
+ rcall print_decimal
+
+ ldi data, ','
+ rcall lcd_put_char
+ ldi data, ' '
+ rcall lcd_put_char
+
+ mov temp1, cval
+ rcall print_decimal
+
+ ldi data, ')'
+ rcall lcd_put_char
+
+ ldi data, LCD_SET_ADD | 0x40
+ lcd_write_com
+
+ rcall evaluate_result_char
+ rcall lcd_put_char
+
+ clr input_ready
+
+ pop data
+ pop temp8
+ pop temp7
+ pop temp3
+ pop temp2
+ pop temp1
+ ret
+
+print_decimal:
+ push temp2
+ push temp3
+ push temp4
+ push temp5
+ push temp7
+ push temp8
+
+ clr temp5
+ mov temp2, temp1
+
+ ldi temp7, 100
+ clr temp3
+pd_hund_loop:
+ cp temp2, temp7
+ brlo pd_hund_done
+ sub temp2, temp7
+ inc temp3
+ rjmp pd_hund_loop
+pd_hund_done:
+ tst temp3
+ breq pd_tens_prep
+ ldi data, '0'
+ add data, temp3
+ rcall lcd_put_char
+ ldi temp7, 1
+ mov temp5, temp7
+pd_tens_prep:
+ ldi temp7, 10
+ clr temp3
+pd_tens_loop:
+ cp temp2, temp7
+ brlo pd_tens_done
+ sub temp2, temp7
+ inc temp3
+ rjmp pd_tens_loop
+pd_tens_done:
+ tst temp3
+ brne pd_tens_nonzero
+ tst temp5
+ breq pd_ones
+ ldi data, '0'
+ rcall lcd_put_char
+ rjmp pd_ones
+pd_tens_nonzero:
+ ldi data, '0'
+ add data, temp3
+ rcall lcd_put_char
+ ldi temp7, 1
+ mov temp5, temp7
+pd_ones:
+ ldi data, '0'
+ add data, temp2
+ rcall lcd_put_char
+
+ pop temp8
+ pop temp7
+ pop temp5
+ pop temp4
+ pop temp3
+ pop temp2
+ ret
+
+lcd_put_char:
+ push temp7
+ push temp8
+ lcd_wait_busy
+ lcd_write_data
+ pop temp8
+ pop temp7
+ ret
+
+evaluate_result_char:
+ ldi data, '?'
+ ret
+
+blink_state_led:
+ push temp7
+ push temp8
+ ldi temp7, 0xFF
+ out PORTC, temp7
+ ldi temp7, low(10000)
+ ldi temp8, high(10000)
+ delay
+ clr temp7
+ out PORTC, temp7
+ pop temp8
+ pop temp7
+ ret
 
 end:
  rjmp end
